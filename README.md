@@ -2,7 +2,7 @@
 
 This is a clone of [the UNIX command tool `wc`](https://en.wikipedia.org/wiki/Wc_(Unix)) written in Golang. As a clone, it tries to mimic all behaviors from the origin; however, there are still some minor differences.
 
-Currently, `ccwc` supports only one file input, and no `STDIN` input is supported. The support is not guaranteed to be added in the future.
+Currently, `ccwc` supports only one file input, or `STDIN` input. Support for multiple file inputs may, but is not guaranteed to, be added in the future.
 
 ## Usage
 

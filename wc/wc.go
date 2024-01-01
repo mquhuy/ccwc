@@ -5,39 +5,36 @@ package wc
 
 import (
 	"bufio"
-	"os"
-	"strconv"
+	"bytes"
+	"io"
+	"strings"
 )
 
-func count(filePath string, splitFunc bufio.SplitFunc) (int, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return 0, err
-	}
-	defer file.Close()
-	var result int
-	scanner := bufio.NewScanner(file)
-	scanner.Split(splitFunc)
+// CountResult stores the result of counting a file input
+type CountResult struct {
+	ByteCount int
+	CharCount int
+	WordCount int
+	LineCount int
+}
+
+func Count(reader io.Reader) (*CountResult, error) {
+	result := &CountResult{}
+	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {
-		result++
 		if err := scanner.Err(); err != nil {
-			return 0, err
+			return nil, err
 		}
+		result.LineCount++
+		line := scanner.Text()
+		result.WordCount += len(strings.Fields(line))
+		lineBytes := scanner.Bytes()
+		// Add 2 as the newline characters were stripped off in
+		// bufio.ScanLines()
+		result.ByteCount += len(lineBytes) + 2
+		result.CharCount += len(bytes.Runes(lineBytes)) + 2
 	}
 
 	return result, nil
-}
-
-func CountAll(filePath string, splitFuncs []bufio.SplitFunc) (*[]string, error) {
-	res := []string{}
-	for _, f := range splitFuncs {
-		c, err := count(filePath, f)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, strconv.Itoa(c))
-	}
-	res = append(res, filePath)
-	return &res, nil
 }

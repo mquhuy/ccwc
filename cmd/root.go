@@ -4,8 +4,8 @@ Copyright © 2024 Huy Mai <me@huymai.fi>
 package cmd
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,34 +25,51 @@ var rootCmd = &cobra.Command{
 	Long: `Print newline, word, and byte counts for each FILE, and a total line if
 more than one FILE is specified.  A word is a non-zero-length sequence of
 characters delimited by white space.`,
-	Args: cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	Run: func(cmd *cobra.Command, args []string) {
-		filePath := args[0]
-		splitFuncs := []bufio.SplitFunc{}
-		if *countLines {
-			splitFuncs = append(splitFuncs, bufio.ScanLines)
+		info, _ := os.Stdin.Stat()
+		var reader io.Reader
+		var err error
+		var fileName string
+
+		// If received a file, read it, else handle stdin
+		if (info.Mode() & os.ModeCharDevice == os.ModeCharDevice) {
+			fileName = args[0]
+			reader, err = os.Open(fileName)
+			if err != nil {
+				os.Exit(1)
+			}
+		} else {
+			reader = os.Stdin
 		}
-		if *countWords {
-			splitFuncs = append(splitFuncs, bufio.ScanWords)
-		}
-		if *countChars {
-			splitFuncs = append(splitFuncs, bufio.ScanRunes)
-		}
-		if *countBytes {
-			splitFuncs = append(splitFuncs, bufio.ScanBytes)
-		}
-		if len(splitFuncs) == 0 {
-			splitFuncs = []bufio.SplitFunc{bufio.ScanLines, bufio.ScanWords, bufio.ScanBytes}
-		}
-		res, err := wc.CountAll(filePath, splitFuncs)
+		counts := []int{}
+		res, err := wc.Count(reader)
 		if err != nil {
 			fmt.Print(err)
 			os.Exit(1)
 		}
-		for _, s := range *res {
-			fmt.Printf("%*s\t", 1, s)
+		if *countLines {
+			counts = append(counts, res.LineCount)
 		}
-		fmt.Print("\n")
+		if *countWords {
+			counts = append(counts, res.WordCount)
+		}
+		if *countChars {
+			counts = append(counts, res.CharCount)
+		}
+		if *countBytes {
+			counts = append(counts, res.ByteCount)
+		}
+		if len(counts) == 0 {
+			counts = []int{res.LineCount, res.WordCount, res.ByteCount}
+		}
+		resStr := ""
+		for _, s := range counts {
+			resStr = fmt.Sprintf("%s\t%d", resStr, s)
+		}
+		if fileName != "" {
+			resStr = fmt.Sprintf("%s\t%s", resStr, fileName)
+		}
+		fmt.Println(resStr)
 		os.Exit(0)
 	},
 }
